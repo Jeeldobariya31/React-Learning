@@ -1,0 +1,114 @@
+/* General Styles */
+body {
+  font-family: sans-serif;
+  margin: 0;
+  background-color: #1a1a1a;
+  color: #fff;
+}
+
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+/* Header */
+.app-header {
+  background-color: #242424;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid #333;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: #61dafb;
+}
+
+/* Main Content */
+.app-main {
+  display: flex;
+  gap: 2rem;
+}
+
+.main-content {
+  display: flex;
+  width: 100%;
+  gap: 2rem;
+}
+
+.left-column {
+  flex: 1;
+}
+
+.right-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.hook-section {
+  background-color: #242424;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease-in-out;
+}
+
+.hook-section:hover {
+  transform: translateY(-5px);
+}
+
+.hook-section h2 {
+  margin-top: 0;
+  color: #61dafb;
+  border-bottom: 1px solid #333;
+  padding-bottom: 0.5rem;
+}
+
+/* Form Elements */
+input,
+button {
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  border: 1px solid #333;
+  margin-right: 0.5rem;
+}
+
+input {
+  background-color: #333;
+  color: #fff;
+}
+
+button {
+  background-color: #61dafb;
+  color: #1a1a1a;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+
+button:hover {
+  background-color: #4fa8c4;
+}
+
+p {
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+
+.logs-container {
+  height: 200px;
+  overflow-y: auto;
+  background-color: #1a1a1a;
+  padding: 1rem;
+  border-radius: 4px;
+  border: 1px solid #333;
+}
+
+.log-item {
+  margin-bottom: 0.5rem;
+}
