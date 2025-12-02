@@ -1,6 +1,6 @@
 import {  useState, useCallback, useEffect ,useRef, use} from 'react'
 import './App.css'
-import { normalizeModuleId } from 'vite/module-runner';
+
 
 function App() {
   const [length, setLength] = useState(8);
@@ -21,11 +21,13 @@ function App() {
       password += chars.charAt(randomIndex);
     }
     setPassword(password);
-  }, [length, isNum, isSym, setPassword]);
+  }, [length, isNum, isSym]);
+
   const passCopy = useCallback(() => {
     passwordRef.current?.select();
     window.navigator.clipboard.writeText(password);
-   }, [password]);
+  }, [password]);
+  
   //useRef
   const passwordRef = useRef(null);
 
@@ -72,7 +74,7 @@ function App() {
             <input
               type="checkbox"
               checked={isSym}
-              onChange={(e, k) => {
+              onChange={(e) => {
                 setIssym(e.target.checked);
               }}
             />
