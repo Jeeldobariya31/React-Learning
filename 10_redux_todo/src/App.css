@@ -1,0 +1,200 @@
+/* ===============================
+   ROOT APP AREA
+   =============================== */
+.app-root {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 16px;
+  background: #eef1f5;
+  font-family: system-ui, Arial, sans-serif;
+  box-sizing: border-box;
+}
+
+/* ===============================
+   MAIN TODO CONTAINER
+   =============================== */
+.todo-container {
+  width: 100%;
+  max-width: 480px;
+  background: #ffffff;
+  padding: 24px 20px 20px;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.10);
+  box-sizing: border-box;
+}
+
+/* Heading */
+.todo-heading {
+  text-align: center;
+  margin-bottom: 16px;
+  font-size: 24px;
+  font-weight: bold;
+  color: #111827;
+}
+
+/* ===============================
+   FORM STYLING
+   =============================== */
+.todo-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+/* Input box */
+.todo-input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 15px;
+  outline: none;
+  transition: 0.2s;
+  box-sizing: border-box;
+}
+
+.todo-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+/* Add button */
+.todo-add-btn {
+  padding: 10px 16px;
+  background: #2563eb;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.todo-add-btn:hover {
+  background: #1d4ed8;
+}
+
+.todo-add-btn:active {
+  transform: translateY(1px);
+}
+
+/* ===============================
+   TODO LIST
+   =============================== */
+.todo-list {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* Single todo item */
+.todo-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  transition: 0.2s;
+}
+
+/* Completed todo style */
+.todo-item-completed .todo-text {
+  text-decoration: line-through;
+  color: #6b7280;
+}
+
+/* Left content area */
+.todo-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Todo text */
+.todo-text {
+  font-size: 15px;
+  color: #111827;
+}
+
+/* Edit text input */
+.todo-edit-input {
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 14px;
+  border: 1px solid #d1d5db;
+  outline: none;
+  transition: 0.2s;
+}
+
+.todo-edit-input:focus {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
+}
+
+/* ===============================
+   ACTION BUTTONS (edit, save, delete)
+   =============================== */
+.todo-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* Base button */
+.todo-btn {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  transition: 0.2s;
+}
+
+/* Edit button */
+.todo-btn.edit {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.todo-btn.edit:hover {
+  background: #bae6fd;
+}
+
+/* Save button */
+.todo-btn.save {
+  background: #bbf7d0;
+  color: #166534;
+}
+
+.todo-btn.save:hover {
+  background: #86efac;
+}
+
+/* Delete button */
+.todo-btn.delete {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.todo-btn.delete:hover {
+  background: #fecaca;
+}
+
+.todo-btn:active {
+  transform: translateY(1px);
+}
+
+/* ===============================
+   EMPTY LIST TEXT
+   =============================== */
+.todo-empty {
+  margin-top: 12px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
+}
