@@ -1,22 +1,39 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button, Input, RTE, Select } from "..";
-import appwriteService from "../../appWrite/config";
+import appwriteService from "../../appWrite";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import {
-  uploadImageUnsigned,
-  deleteByPublicId,
-  getPublicIdFromUrl,
-  isCloudinaryUrl,
-} from "../../utils/cloudinaryClient";
 
+/* ✅ EMAIL IMPORT (ADDED) */
+import {
+  sendArticleCreateEmail,
+  sendArticleUpdateEmail,
+} from "../../utils/email";
+
+/**
+ * PostForm
+ * --------------------------------------------------
+ * Used for:
+ * - Creating a new post
+ * - Editing an existing post
+ *
+ * Handles:
+ * - Slug generation
+ * - Image upload / replace
+ * - Image cleanup (delete old image)
+ * - Create vs Update logic
+ * - 📧 Email notifications (ADDED)
+ */
 export default function PostForm({ post }) {
+  /* =========================
+     FORM SETUP
+     ========================= */
   const { register, handleSubmit, watch, setValue, control, getValues } =
     useForm({
       defaultValues: {
         title: post?.title || "",
-        slug: post?.$id || "",
+        slug: post?.slug || "",
         content: post?.content || "",
         status: post?.status || "active",
       },
@@ -24,178 +41,198 @@ export default function PostForm({ post }) {
 
   const navigate = useNavigate();
   const userData = useSelector((state) => state.auth.userData);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const isValidImageFile = (file) => {
-    return (
-      file &&
-      typeof file === "object" &&
-      typeof file.size === "number" &&
-      file.size > 0 &&
-      typeof file.type === "string" &&
-      file.type.startsWith("image/")
-    );
-  };
+  /* =========================
+     HELPERS
+     ========================= */
 
-  const submit = async (data) => {
-    setLoading(true);
-    setError("");
-    try {
-      if (!userData?.$id) {
-        throw new Error("Please log in before submitting a post.");
-      }
-      if (post) {
-        // UPDATE FLOW
-        let newFeatured = undefined;
-        let newFeaturedPublicId = undefined;
-        const newImage = isValidImageFile(data.image && data.image[0])
-          ? data.image[0]
-          : null;
+  const isValidImageFile = (file) =>
+    file instanceof File && file.type.startsWith("image/");
 
-        if (newImage) {
-          // 1) delete old image first
-          try {
-            if (isCloudinaryUrl(post.featuredImage)) {
-              const pubId = getPublicIdFromUrl(post.featuredImage);
-              if (pubId) await deleteByPublicId(pubId);
-            } else if (post.featuredImage) {
-              await appwriteService.deleteFile(post.featuredImage);
-            }
-          } catch (_) {
-            // ignore deletion errors
-          }
-
-          // 2) Cloudinary upload (store URL only)
-          const up = await uploadImageUnsigned(newImage);
-          newFeatured = up.secure_url;
-          newFeaturedPublicId = up.public_id;
-        }
-
-        const dbPost = await appwriteService.updatePost(post.$id, {
-          ...data,
-          featuredImage: newFeatured !== undefined ? newFeatured : post.featuredImage,
-          featuredImagePublicId: newFeaturedPublicId !== undefined ? newFeaturedPublicId : post.featuredImagePublicId,
-        });
-
-        if (dbPost) {
-          navigate(`/post/${dbPost.$id}`);
-        }
-      } else {
-        // CREATE FLOW (image optional)
-        const image = isValidImageFile(data.image && data.image[0])
-          ? data.image[0]
-          : null;
-        let featuredImageValue = undefined;
-        let featuredImagePublicId = undefined;
-        if (image) {
-          // Cloudinary only: store URL
-          const up = await uploadImageUnsigned(image);
-          featuredImageValue = up.secure_url;
-          featuredImagePublicId = up.public_id;
-        }
-
-        const dbPost = await appwriteService.createPost({
-          ...data,
-          featuredImage: featuredImageValue,
-          featuredImagePublicId,
-          authorId: userData?.prefs?.authorId,
-        });
-
-        if (dbPost) {
-          navigate(`/post/${dbPost.$id}`);
-        }
-      }
-    } catch (err) {
-      setError(err.message || "Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const slugTransform = useCallback((value) => {
-    if (value && typeof value === "string")
-      return value
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-zA-Z\d\s]+/g, "-")
-        .replace(/\s/g, "-");
-
-    return "";
+  const slugTransform = useCallback((value = "") => {
+    return value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)+/g, "");
   }, []);
 
-  React.useEffect(() => {
+  /* =========================
+     AUTO SLUG FROM TITLE
+     ========================= */
+  useEffect(() => {
     const subscription = watch((value, { name }) => {
       if (name === "title") {
-        setValue("slug", slugTransform(value.title), { shouldValidate: true });
+        setValue("slug", slugTransform(value.title), {
+          shouldValidate: true,
+        });
       }
     });
 
     return () => subscription.unsubscribe();
   }, [watch, slugTransform, setValue]);
 
+  /* =========================
+     SUBMIT HANDLER
+     ========================= */
+  const submit = async (data) => {
+    setLoading(true);
+    setError("");
+
+    try {
+      if (!userData?.$id) {
+        throw new Error("You must be logged in");
+      }
+
+      /* =========================
+         IMAGE LOGIC
+         ========================= */
+      let featuredImageId = post?.featuredImage || null;
+
+      const newImage =
+        data.image && isValidImageFile(data.image[0]) ? data.image[0] : null;
+
+      if (newImage) {
+        if (post?.featuredImage) {
+          await appwriteService.deleteImage(post.featuredImage);
+        }
+
+        const uploaded = await appwriteService.uploadImage(
+          newImage,
+          userData.$id
+        );
+
+        featuredImageId = uploaded.$id;
+      }
+
+      /* =========================
+         UPDATE POST
+         ========================= */
+      if (post) {
+        const updated = await appwriteService.updatePost(post.$id, {
+          title: data.title,
+          slug: data.slug,
+          content: data.content,
+          status: data.status,
+          featuredImage: featuredImageId,
+        });
+
+        /* 📧 EMAIL ON UPDATE (ADDED) */
+        sendArticleUpdateEmail({
+          title: updated.title,
+          status: updated.status,
+          authorName: userData.name,
+          authorEmail: userData.email,
+        }).catch(() => console.warn("Update email failed"));
+
+        navigate(`/post/${updated.slug}`);
+        return;
+      }
+
+      /* =========================
+         CREATE POST
+         ========================= */
+      const created = await appwriteService.createPost(
+        {
+          title: data.title,
+          content: data.content,
+          status: data.status,
+          featuredImage: featuredImageId,
+        },
+        userData
+      );
+
+      /* 📧 EMAIL ON CREATE (ADDED) */
+      sendArticleCreateEmail({
+        title: created.title,
+        status: created.status,
+        authorName: userData.name,
+        authorEmail: userData.email,
+      }).catch(() => console.warn("Create email failed"));
+
+      navigate(`/post/${created.slug}`);
+    } catch (err) {
+      console.error("❌ Post submit failed:", err);
+      setError(err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* =========================
+     RENDER
+     ========================= */
   return (
-    <form onSubmit={handleSubmit(submit)} className="w-full flex flex-wrap my-3">
+    <form
+      onSubmit={handleSubmit(submit)}
+      className="w-full flex flex-wrap my-3"
+    >
+      {/* LEFT COLUMN */}
       <div className="w-full px-2">
         <Input
-          label="Title :"
-          placeholder="Title"
+          label="Title"
           className="mb-4"
           {...register("title", { required: true })}
         />
+
         <Input
-          label="Slug :"
-          placeholder="Slug"
+          label="Slug"
           className="mb-4"
           {...register("slug", { required: true })}
-          onInput={(e) => {
+          onInput={(e) =>
             setValue("slug", slugTransform(e.currentTarget.value), {
               shouldValidate: true,
-            });
-          }}
+            })
+          }
         />
+
         <RTE
-          label="Content :"
+          label="Content"
           name="content"
           control={control}
           defaultValue={getValues("content")}
         />
       </div>
+
+      {/* RIGHT COLUMN */}
       <div className="w-full px-2">
         <Input
-          label="Featured Image (optional):"
+          label="Featured Image (optional)"
           type="file"
+          accept="image/*"
           className="mb-4"
-          accept="image/png, image/jpg, image/jpeg, image/gif"
           {...register("image")}
         />
-        {post && (
+
+        {post?.featuredImage && (
           <div className="w-full mb-4">
             <img
-              src={
-                typeof post.featuredImage === "string" && post.featuredImage.startsWith("http")
-                  ? post.featuredImage
-                  : appwriteService.getFilePreview(post.featuredImage)
-              }
+              src={appwriteService.getImageUrl(post.featuredImage)}
               alt={post.title}
-              className="rounded-lg"
+              className="rounded-lg max-h-64 object-contain"
             />
           </div>
         )}
+
         <Select
           options={["active", "inactive"]}
           label="Status"
           className="mb-4"
           {...register("status", { required: true })}
         />
+
         <Button
           type="submit"
-          bgColor={post ? "bg-green-500" : undefined}
           className="w-full"
+          bgColor={post ? "bg-green-500" : undefined}
           disabled={loading}
         >
-          {loading ? "Submitting..." : post ? "Update" : "Submit"}
+          {loading ? "Saving..." : post ? "Update Post" : "Create Post"}
         </Button>
+
         {error && <p className="text-red-600 mt-2 text-center">{error}</p>}
       </div>
     </form>

@@ -1,5 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 
 export default function Footer() {
   return (
@@ -10,28 +11,51 @@ export default function Footer() {
         transition={{ duration: 0.4 }}
         className="mx-auto max-w-7xl px-4 py-8"
       >
-        {/* Navigation / social links (optional) */}
-        {/*
-        <div className="flex justify-center gap-6 mb-4">
-          {["Home", "All Posts", "About", "Contact"].map((txt, idx) => (
-            <motion.a
-              key={idx}
-              href="#"
-              whileHover={{ scale: 1.06, y: -1 }}
-              className="text-blue-700 hover:text-blue-900 text-sm font-medium transition"
-            >
-              {txt}
-            </motion.a>
-          ))}
+        {/* =======================
+            TOP ROW
+        ======================== */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4">
+          {/* Brand */}
+          <span className="text-sm font-semibold text-blue-900">Blogzilla</span>
+
+          {/* Links */}
+          <div className="flex gap-6 text-sm">
+            <motion.div whileHover={{ y: -1 }}>
+              <Link
+                to="/terms"
+                className="text-blue-700 hover:text-blue-900 transition"
+              >
+                Terms
+              </Link>
+            </motion.div>
+
+            <motion.div whileHover={{ y: -1 }}>
+              <Link
+                to="/privacy"
+                className="text-blue-700 hover:text-blue-900 transition"
+              >
+                Privacy
+              </Link>
+            </motion.div>
+
+            {/* ✅ NEW CONTACT LINK */}
+            <motion.div whileHover={{ y: -1 }}>
+              <Link
+                to="/contact"
+                className="text-blue-700 hover:text-blue-900 transition"
+              >
+                Contact
+              </Link>
+            </motion.div>
+          </div>
         </div>
-        */}
 
         {/* Divider */}
         <div className="w-full h-[1px] bg-blue-100 mb-4" />
 
         {/* Copyright */}
         <p className="text-center text-sm text-blue-700">
-          © {new Date().getFullYear()} Mega Blog. All rights reserved.
+          © {new Date().getFullYear()} Blogzilla. All rights reserved.
         </p>
       </motion.div>
     </footer>

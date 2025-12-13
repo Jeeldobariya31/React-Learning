@@ -1,29 +1,50 @@
 import React from "react";
 import { Editor } from "@tinymce/tinymce-react";
 import { Controller } from "react-hook-form";
-import appwriteService from "../appWrite/config"; // keep your service import
+import appwriteService from "../appWrite/config";
 
-export default function RTE({ name, control, label, defaultValue = "" }) {
+/**
+ * Fully‑featured Rich Text Editor (TinyMCE)
+ * - Images / Media upload via Appwrite
+ * - Tables, code, fullscreen, preview
+ * - Autosave, paste cleanup, wordcount
+ * - Links, lists, formatting, colors
+ */
+export default function RTE({
+  name = "content",
+  control,
+  label,
+  defaultValue = "",
+}) {
   return (
     <div className="w-full">
-      {label && <label className="inline-block mb-1 pl-1">{label}</label>}
+      {label && (
+        <label className="inline-block mb-1 pl-1 font-medium">{label}</label>
+      )}
 
       <Controller
-        name={name || "content"}
+        name={name}
         control={control}
-        render={({ field: { onChange } }) => (
+        render={({ field: { onChange, value } }) => (
           <Editor
             apiKey={import.meta.env.VITE_TINY_KEY}
+            value={value}
             initialValue={defaultValue}
+            onEditorChange={onChange}
             init={{
               height: 500,
               menubar: true,
+              branding: false,
+
+              /* ================= Plugins ================= */
               plugins: [
-                "image",
                 "advlist",
                 "autolink",
                 "lists",
                 "link",
+                "image",
+                "media",
+                "table",
                 "charmap",
                 "preview",
                 "anchor",
@@ -32,66 +53,84 @@ export default function RTE({ name, control, label, defaultValue = "" }) {
                 "code",
                 "fullscreen",
                 "insertdatetime",
-                "media",
-                "table",
-                "help",
                 "wordcount",
+                "help",
+                "autosave",
+                "quickbars",
+                "emoticons",
+                "codesample",
               ],
-              toolbar:
-                "undo redo | blocks | image | bold italic forecolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help",
-              content_style:
-                "body { font-family:Helvetica,Arial,sans-serif; font-size:14px }",
-              automatic_uploads: true,
 
-              /* Robust images_upload_handler — logs, normalizes URL, validates absolute URL */
-              images_upload_handler: async (blobInfo, progress) => {
+              /* ================= Toolbar ================= */
+              toolbar:
+                "undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | forecolor backcolor | " +
+                "alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | " +
+                "link image media table | codesample code preview fullscreen | removeformat help",
+
+              /* ================= Quick Toolbar ================= */
+              quickbars_selection_toolbar:
+                "bold italic | quicklink h2 h3 blockquote",
+              quickbars_insert_toolbar: "quickimage quicktable",
+
+              /* ================= Styling ================= */
+              content_style:
+                "body { font-family: Inter, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.6; }",
+
+              /* ================= Paste Handling ================= */
+              paste_as_text: false,
+              paste_auto_cleanup_on_paste: true,
+              paste_remove_styles: false,
+              paste_remove_spans: false,
+
+              /* ================= Autosave ================= */
+              autosave_interval: "30s",
+              autosave_retention: "2m",
+
+              /* ================= Image Upload ================= */
+              automatic_uploads: true,
+              images_upload_handler: async (blobInfo) => {
                 try {
                   const file = blobInfo.blob();
-                  console.log("[RTE] uploading file blob", {
-                    name: blobInfo.filename(),
-                    size: blobInfo.size(),
-                    type: file.type,
-                  });
-
-                  // call your existing upload helper
                   const uploaded = await appwriteService.uploadFile(file);
-                  console.log("[RTE] appwrite upload response:", uploaded);
+                  const preview = await appwriteService.getFilePreview(
+                    uploaded.$id
+                  );
 
-                  // getFilePreview may return a string or an object with href
-                  const maybeUrl = await appwriteService.getFilePreview(uploaded.$id);
-                  console.log("[RTE] appwrite preview result:", maybeUrl);
-
-                  // normalize to string href
                   const url =
-                    maybeUrl && typeof maybeUrl === "object" && maybeUrl.href
-                      ? maybeUrl.href
-                      : typeof maybeUrl === "string"
-                      ? maybeUrl
+                    preview && typeof preview === "object" && preview.href
+                      ? preview.href
+                      : typeof preview === "string"
+                      ? preview
                       : null;
 
-                  if (!url) {
-                    throw new Error(
-                      "No valid URL returned from appwriteService.getFilePreview. Check upload permissions and preview method."
-                    );
+                  if (!url || !/^https?:\/\//i.test(url)) {
+                    throw new Error("Invalid image URL returned from Appwrite");
                   }
 
-                  // ensure absolute URL
-                  if (!/^https?:\/\//i.test(url)) {
-                    // Optionally, if your preview returns a path, prefix with your endpoint
-                    throw new Error("Returned URL is not absolute: " + url);
-                  }
-
-                  // Optional: test HEAD/GET quickly (not required — but helpful in dev)
-                  console.log("[RTE] returning image URL to TinyMCE:", url);
                   return url;
                 } catch (err) {
-                  console.error("[RTE] TinyMCE image upload failed:", err);
-                  // rethrow so Tiny shows an error to the user in the editor
+                  console.error("[RTE] Image upload failed:", err);
                   throw err;
                 }
               },
+
+              /* ================= Link ================= */
+              link_default_target: "_blank",
+              link_rel_list: [
+                { title: "None", value: "" },
+                { title: "No Follow", value: "nofollow" },
+              ],
+
+              /* ================= Tables ================= */
+              table_default_attributes: { border: "1" },
+              table_default_styles: { width: "100%" },
+
+              /* ================= Media ================= */
+              media_live_embeds: true,
+
+              /* ================= Accessibility ================= */
+              a11y_advanced_options: true,
             }}
-            onEditorChange={onChange}
           />
         )}
       />

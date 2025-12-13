@@ -7,11 +7,15 @@ import Popup from "./Popup";
 import { useDispatch } from "react-redux";
 import { useForm } from "react-hook-form";
 
+// 📧 EmailJS util
+import { sendSignupEmail } from "../utils/email";
+
 export default function Signup() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
   const [serverError, setServerError] = useState("");
   const [showError, setShowError] = useState(false);
-  const dispatch = useDispatch();
 
   const {
     register,
@@ -19,17 +23,39 @@ export default function Signup() {
     formState: { errors, isSubmitting },
   } = useForm({ mode: "onTouched" });
 
+  /* ===================================================
+     CREATE ACCOUNT HANDLER
+     =================================================== */
   const create = async (data) => {
     setServerError("");
+
     try {
-      // create account (assumes authService.createAccount returns session or success flag)
+      /* ===========================
+         1️⃣ CREATE ACCOUNT (APPWRITE)
+         =========================== */
       await authService.createAccount(data);
 
-      // fetch current user and update redux
+      /* ===========================
+         2️⃣ FETCH USER + REDUX LOGIN
+         =========================== */
       const userData = await authService.getCurrentUser();
       if (userData) dispatch(login(userData));
 
-      // navigate home
+      /* ===========================
+         3️⃣ SEND WELCOME EMAIL
+         (NON-BLOCKING)
+         =========================== */
+      sendSignupEmail({
+        name: data.name,
+        email: data.email,
+      }).catch(() => {
+        // ❗ Email failure should NOT break signup
+        console.warn("⚠️ Welcome email failed");
+      });
+
+      /* ===========================
+         4️⃣ REDIRECT TO HOME
+         =========================== */
       navigate("/");
     } catch (err) {
       const msg = err?.message || "Signup failed";
@@ -39,25 +65,28 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen bg-blue-50 flex items-center justify-center ">
+    <div className="min-h-screen bg-blue-50 flex items-center justify-center">
       <div className="w-full max-w-lg bg-white rounded-2xl border border-blue-100 shadow-md p-8">
+        {/* LOGO */}
         <div className="mb-4 flex justify-center">
-          <span className="inline-block">
-            <Logo size={36} />
-          </span>
+          <Logo size={36} />
         </div>
 
-        <h2 className="text-center text-2xl font-extrabold text-blue-900 leading-tight">
+        <h2 className="text-center text-2xl font-extrabold text-blue-900">
           Create your account
         </h2>
 
         <p className="mt-2 text-center text-sm text-blue-600">
           Already have an account?{" "}
-          <Link to="/login" className="font-medium text-blue-700 hover:underline">
+          <Link
+            to="/login"
+            className="font-medium text-blue-700 hover:underline"
+          >
             Sign In
           </Link>
         </p>
 
+        {/* ERROR POPUP */}
         <Popup
           title="Signup failed"
           message={serverError}
@@ -65,6 +94,7 @@ export default function Signup() {
           onClose={() => setShowError(false)}
         />
 
+        {/* FORM */}
         <form onSubmit={handleSubmit(create)} className="mt-8" noValidate>
           <div className="space-y-5">
             <Input
@@ -81,8 +111,7 @@ export default function Signup() {
               {...register("email", {
                 required: "Email is required",
                 pattern: {
-                  value:
-                    /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+                  value: /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
                   message: "Please enter a valid email address",
                 },
               })}
@@ -100,12 +129,18 @@ export default function Signup() {
               error={errors.password?.message}
             />
 
-            <Button type="submit" className="w-full" loading={isSubmitting} aria-disabled={isSubmitting}>
+            <Button
+              type="submit"
+              className="w-full"
+              loading={isSubmitting}
+              aria-disabled={isSubmitting}
+            >
               {isSubmitting ? "Creating…" : "Create Account"}
             </Button>
           </div>
         </form>
 
+        {/* TERMS */}
         <div className="mt-6 text-center text-sm text-blue-500">
           By creating an account you agree to our{" "}
           <Link to="/terms" className="underline hover:text-blue-700">
